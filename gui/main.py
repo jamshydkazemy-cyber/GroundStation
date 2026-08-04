@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (
 from gui.widgets.sidebar import SideBar
 from gui.widgets.header import Header
 from gui.widgets.workspace import Workspace
-from gui.widgets.page_manager import PageManager
 from gui.widgets.statusbar import StatusBar
 
 
@@ -32,9 +31,8 @@ class MainWindow(QMainWindow):
 
         right = QVBoxLayout()
 
-        self.pages = PageManager()
-        right.addWidget(self.pages, 1)
         right.addWidget(Header())
         right.addWidget(Workspace(), 1)
         right.addWidget(StatusBar())
+
         root.addLayout(right)
