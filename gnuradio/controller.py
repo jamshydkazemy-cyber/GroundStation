@@ -1,21 +1,26 @@
+from gnuradio.receiver import Receiver
+
+
 class GNUController:
 
     def __init__(self):
-        self.running = False
+
+        self.tb = None
 
     def start(self):
-        self.running = True
-        print("Receiver Started")
+
+        if self.tb is None:
+
+            self.tb = Receiver()
+
+            self.tb.start()
 
     def stop(self):
-        self.running = False
-        print("Receiver Stopped")
 
-    def set_frequency(self, freq):
-        print("Frequency:", freq)
+        if self.tb:
 
-    def set_gain(self, gain):
-        print("Gain:", gain)
+            self.tb.stop()
 
-    def set_sample_rate(self, rate):
-        print("Sample Rate:", rate)
+            self.tb.wait()
+
+            self.tb = None
