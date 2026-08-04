@@ -25,15 +25,19 @@ class MainWindow(QMainWindow):
 
         root = QHBoxLayout(central)
 
-        sidebar = SideBar()
-        sidebar.setFixedWidth(220)
+        self.sidebar = SideBar()
 
-        root.addWidget(sidebar)
+        self.sidebar.setFixedWidth(220)
+
+        root.addWidget(self.sidebar)
 
         right = QVBoxLayout()
 
         self.pages = PageManager()
         right.addWidget(self.pages, 1)
+        self.sidebar.pageChanged.connect(
+            self.pages.setCurrentIndex
+        )
         right.addWidget(Header())
         right.addWidget(Workspace(), 1)
         right.addWidget(StatusBar())

@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout
 
 
-class ReceiverPage(QWidget):
+class TelemetryPage(QWidget):
 
     def __init__(self):
         super().__init__()
