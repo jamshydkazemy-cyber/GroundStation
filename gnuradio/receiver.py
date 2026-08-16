@@ -1,90 +1,47 @@
-from PySide6.QtWidgets import (
-    QWidget,
-    QLabel,
-    QVBoxLayout,
-    QGridLayout,
-    QLineEdit,
-    QPushButton,
-    QComboBox,
-    QProgressBar,
-    QTextEdit,
-)
-from gnuradio.controller import GNUController
+import numpy as np
+from gnuradio import gr, blocks, filter, fft
+from gnuradio.fft import window
+import osmosdr
 
 
-class ReceiverPage(QWidget):
+class Receiver(gr.top_block):
+    def __init__(self, frequency=437500000, sample_rate=2000000, gain=30, fft_size=256):
+        super().__init__("RTL-SDR Receiver Flowgraph")
 
-    def __init__(self):
-        super().__init__()
-        self.ctrl = GNUController()
-        self.start.clicked.connect(self.start_receiver)
-        self.stop.clicked.connect(self.stop_receiver)
+        self.fft_size = fft_size
 
-        main = QVBoxLayout(self)
+        # 1. منبع دریافت RTL-SDR
+        self.rtlsdr_source = osmosdr.source(args="rtl=0")
+        self.rtlsdr_source.set_sample_rate(sample_rate)
+        self.rtlsdr_source.set_center_freq(frequency, 0)
+        self.rtlsdr_source.set_gain_mode(False, 0)
+        self.rtlsdr_source.set_gain(gain, 0)
 
-        title = QLabel("Receiver")
+        # 2. محاسبه FFT برای نمودار طیف و آبشاری
+        self.stream_to_vector = blocks.stream_to_vector(gr.sizeof_gr_complex, self.fft_size)
+        self.fft_block = fft.fft_vcc(self.fft_size, True, window.blackmanharris(self.fft_size), True)
+        self.complex_to_mag_squared = blocks.complex_to_mag_squared(self.fft_size)
 
-        grid = QGridLayout()
+        # 3. سینک خروجی داده‌های FFT
+        self.vector_sink = blocks.probe_signal_vf(self.fft_size)
 
-        self.freq = QLineEdit("437000000")
-        self.sample = QLineEdit("2000000")
-        self.rfgain = QLineEdit("30")
-        self.ifgain = QLineEdit("20")
-        self.bandwidth = QLineEdit("250000")
+        # اتصال بلوک‌ها
+        self.connect(self.rtlsdr_source, self.stream_to_vector)
+        self.connect(self.stream_to_vector, self.fft_block)
+        self.connect(self.fft_block, self.complex_to_mag_squared)
+        self.connect(self.complex_to_mag_squared, self.vector_sink)
 
-        self.mode = QComboBox()
-        self.mode.addItems(["FM", "AM", "USB", "LSB"])
+    def set_frequency(self, freq):
+        self.rtlsdr_source.set_center_freq(freq, 0)
 
-        grid.addWidget(QLabel("Frequency"), 0, 0)
-        grid.addWidget(self.freq, 0, 1)
+    def set_sample_rate(self, rate):
+        self.rtlsdr_source.set_sample_rate(rate)
 
-        grid.addWidget(QLabel("Sample Rate"), 1, 0)
-        grid.addWidget(self.sample, 1, 1)
+    def set_gain(self, gain):
+        self.rtlsdr_source.set_gain(gain, 0)
 
-        grid.addWidget(QLabel("RF Gain"), 2, 0)
-        grid.addWidget(self.rfgain, 2, 1)
-
-        grid.addWidget(QLabel("IF Gain"), 3, 0)
-        grid.addWidget(self.ifgain, 3, 1)
-
-        grid.addWidget(QLabel("Bandwidth"), 4, 0)
-        grid.addWidget(self.bandwidth, 4, 1)
-
-        grid.addWidget(QLabel("Mode"), 5, 0)
-        grid.addWidget(self.mode, 5, 1)
-
-        self.start = QPushButton("Start")
-        self.stop = QPushButton("Stop")
-
-        self.signal = QProgressBar()
-        self.signal.setMaximum(100)
-
-        self.log = QTextEdit()
-        self.log.setReadOnly(True)
-
-        main.addWidget(title)
-        main.addLayout(grid)
-        main.addWidget(self.start)
-        main.addWidget(self.stop)
-        main.addWidget(QLabel("Signal"))
-        main.addWidget(self.signal)
-        main.addWidget(QLabel("Log"))
-        main.addWidget(self.log)
-
-    def start_receiver(self):
-
-        self.ctrl.set_frequency(float(self.freq.text()))
-
-        self.ctrl.set_sample_rate(int(self.sample.text()))
-
-        self.ctrl.set_gain(int(self.rfgain.text()))
-
-        self.ctrl.start()
-
-        self.log.append("Receiver Started")
-
-    def stop_receiver(self):
-
-        self.ctrl.stop()
-
-        self.log.append("Receiver Stopped")
+    def get_fft_data(self):
+        # دریافت داده‌های FFT و تبدیل به dBFS
+        data = np.array(self.vector_sink.level())
+        data = 10 * np.log10(data + 1e-12)
+        return np.fft.fftshift(data)

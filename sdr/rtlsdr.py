@@ -4,6 +4,7 @@ from typing import Optional, List
 
 from PySide6.QtCore import QObject, Signal
 from rtlsdr import RTLSDR
+from rtlsdr import RTLSDR
 
 
 class RTLSDR(QObject):

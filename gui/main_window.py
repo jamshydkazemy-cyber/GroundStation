@@ -1,44 +1,25 @@
-from PySide6.QtWidgets import (
-    QWidget,
-    QMainWindow,
-    QHBoxLayout,
-    QVBoxLayout,
-)
-
-from gui.widgets.sidebar import SideBar
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout
 from gui.widgets.header import Header
 from gui.widgets.workspace import Workspace
-from gui.widgets.page_manager import PageManager
 from gui.widgets.statusbar import StatusBar
-
+from PySide6.QtCore import Qt, QTimer
+import numpy as np
 
 class MainWindow(QMainWindow):
-
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Neora SDR Ground Station")
-        self.resize(1400, 900)
+        self.setWindowTitle("Neora SDR Ground Station (RTL-SDR Downlink)")
+        self.resize(1400, 850)
 
         central = QWidget()
         self.setCentralWidget(central)
 
-        root = QHBoxLayout(central)
+        layout = QVBoxLayout(central)
 
-        self.sidebar = SideBar()
+        # ترکیب هدر، ورک‌استپیس تک‌صفحه‌ای و استاتوس‌بار
+        layout.addWidget(Header())
+        layout.addWidget(Workspace(), 1)
+        layout.addWidget(StatusBar())
+        self.data_buffer = np.zeros((100, 256))
 
-        self.sidebar.setFixedWidth(220)
-
-        root.addWidget(self.sidebar)
-
-        right = QVBoxLayout()
-
-        self.pages = PageManager()
-        right.addWidget(self.pages, 1)
-        self.sidebar.pageChanged.connect(
-            self.pages.setCurrentIndex
-        )
-        right.addWidget(Header())
-        right.addWidget(Workspace(), 1)
-        right.addWidget(StatusBar())
-        root.addLayout(right)
